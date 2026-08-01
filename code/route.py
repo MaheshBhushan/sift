@@ -6,7 +6,7 @@ import anthropic
 
 import prompt
 import rules
-from common import JsonCache, api_key
+from common import API_MAX_RETRIES, JsonCache, api_key
 
 MODEL = "claude-sonnet-5"
 MAX_TOKENS = 1200
@@ -15,14 +15,6 @@ MAX_TOKENS = 1200
 # it one retry, so a systematic format regression costs 2 calls per message
 # rather than a full ladder of them.
 BAD_JSON_ATTEMPTS = 2
-# Transport retries belong to the SDK, not to us. It already parses retry-after
-# and retry-after-ms, falls back to a jittered backoff, and knows which statuses
-# are worth repeating -- all of which a fixed 2**attempt ladder here got wrong,
-# most visibly on a 429 whose reset window is longer than the 7s we would wait.
-# Raised above the SDK default of 2 because a single 110-message run should
-# survive a rate-limit window rather than dying partway through, which is the
-# whole point of retrying at this layer.
-API_MAX_RETRIES = 5
 
 
 class MalformedResponse(ValueError):
