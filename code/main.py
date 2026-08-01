@@ -140,7 +140,14 @@ def main():
 
     print(f"Routing {len(rows)} messages with {args.model}...", flush=True)
     results = run(rows, router, media)
-    print(f"\n{router.calls} model calls made ({len(rows) - router.calls} served from cache)")
+    # Cache hits come off `asked` (messages sent), not `calls` (requests billed);
+    # a retried message bills more than once and used to make this go negative.
+    retried = router.calls - router.asked
+    print(
+        f"\n{router.asked} messages routed, {router.calls} model calls made"
+        f"{f' ({retried} retried)' if retried else ''}"
+        f" ({len(rows) - router.asked} served from cache)"
+    )
     print("action mix:", dict(Counter(d["action"] for _, _, d in results)))
     print("type mix:  ", dict(Counter(d["message_type"] for _, _, d in results)))
     fired = Counter(f for _, _, d in results for f in d["_rules_fired"])
