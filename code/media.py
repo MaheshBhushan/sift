@@ -147,9 +147,9 @@ def describe_images(image_rows, verbose=True, use_cache=True):
     return cache.data
 
 
-def transcribe_voice(voice_rows, verbose=True):
+def transcribe_voice(voice_rows, verbose=True, use_cache=True):
     cache = JsonCache("audio.json")
-    todo = [r for r in voice_rows if not cache.get(r["voice_note_id"])]
+    todo = [r for r in voice_rows if not (use_cache and cache.get(r["voice_note_id"]))]
     if not todo:
         return cache.data
     from faster_whisper import WhisperModel  # imported lazily: slow, optional
