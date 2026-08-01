@@ -1,5 +1,6 @@
 """_prepare() format sniffing and its ffmpeg dependency."""
 import os
+import subprocess
 import unittest
 from unittest import mock
 
@@ -25,6 +26,36 @@ class PrepareSniffing(unittest.TestCase):
 
 
 class PrepareWithoutFfmpeg(unittest.TestCase):
+    def test_a_transcode_failure_reports_what_ffmpeg_said(self):
+        """CalledProcessError alone says only "non-zero exit status 1"."""
+        failure = subprocess.CalledProcessError(
+            1, "ffmpeg", stderr=b"[avif @ 0x1] Invalid data found when processing input\n"
+        )
+        with mock.patch.object(media.subprocess, "run", side_effect=failure):
+            with self.assertRaises(SystemExit) as caught:
+                media._prepare(IMAGES / "img_020.jpg")
+
+        message = str(caught.exception)
+        self.assertIn("img_020.jpg", message)
+        self.assertIn("Invalid data found when processing input", message)
+
+    def test_a_hung_transcode_is_bounded_and_named(self):
+        timeout = subprocess.TimeoutExpired("ffmpeg", media.TRANSCODE_TIMEOUT_S)
+        with mock.patch.object(media.subprocess, "run", side_effect=timeout):
+            with self.assertRaises(SystemExit) as caught:
+                media._prepare(IMAGES / "img_020.jpg")
+
+        message = str(caught.exception)
+        self.assertIn("img_020.jpg", message)
+        self.assertIn(str(media.TRANSCODE_TIMEOUT_S), message)
+
+    def test_the_transcode_is_given_a_timeout(self):
+        with mock.patch.object(media.subprocess, "run") as run:
+            run.return_value = mock.Mock(stdout=b"\x89PNG\r\n\x1a\n")
+            media._prepare(IMAGES / "img_020.jpg")
+
+        self.assertEqual(run.call_args.kwargs["timeout"], media.TRANSCODE_TIMEOUT_S)
+
     def test_missing_ffmpeg_names_the_file_and_the_binary(self):
         with mock.patch.dict(os.environ, {"PATH": ""}):
             with self.assertRaises(SystemExit) as caught:
