@@ -20,7 +20,7 @@ OUT_COLUMNS = ["message_id", "action", "message_type", "reason", "confidence", "
 def media_lookup(use_cache=True):
     """Ensure the media caches exist, then index them by media_id."""
     images = media_mod.describe_images(load("images"), verbose=False, use_cache=use_cache)
-    voices = media_mod.transcribe_voice(load("voice_notes"), verbose=False)
+    voices = media_mod.transcribe_voice(load("voice_notes"), verbose=False, use_cache=use_cache)
     return {**images, **voices}
 
 
