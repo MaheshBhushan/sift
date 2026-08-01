@@ -17,6 +17,9 @@ import anthropic
 from common import DATA, JsonCache, api_key
 
 VISION_MODEL = "claude-sonnet-5"
+# A still image transcodes in well under a second; anything approaching this is
+# ffmpeg stuck on a malformed file, not slow work.
+TRANSCODE_TIMEOUT_S = 30
 
 IMAGE_PROMPT = """You are reading an image attached to a WhatsApp message, so a \
 notification router can decide whether to interrupt the user.
@@ -61,11 +64,29 @@ def _prepare(path):
             f"{path.name} is not a format the API accepts and needs transcoding, "
             "but ffmpeg is not installed. See the prerequisites in code/README.md."
         )
-    out = subprocess.run(
-        ["ffmpeg", "-loglevel", "error", "-i", str(path), "-f", "image2", "-c:v", "png", "-"],
-        capture_output=True,
-        check=True,
-    )
+    try:
+        out = subprocess.run(
+            ["ffmpeg", "-loglevel", "error", "-i", str(path), "-f", "image2", "-c:v", "png", "-"],
+            capture_output=True,
+            check=True,
+            timeout=TRANSCODE_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        # A truncated or malformed file can leave ffmpeg waiting on input, and
+        # with capture_output the parent blocks on the pipes -- the batch hangs
+        # with no output and nothing saying which image did it.
+        raise SystemExit(
+            f"{path.name}: ffmpeg did not finish within {TRANSCODE_TIMEOUT_S}s. "
+            "The file is most likely truncated or corrupt."
+        ) from None
+    except subprocess.CalledProcessError as exc:
+        # str(exc) is only "returned non-zero exit status 1"; the reason ffmpeg
+        # actually gives is on stderr, which capture_output would otherwise eat.
+        detail = (exc.stderr or b"").decode("utf-8", "replace").strip().splitlines()
+        raise SystemExit(
+            f"{path.name}: ffmpeg could not transcode this image"
+            + (f" -- {detail[-1]}" if detail else ".")
+        ) from None
     return "image/png", out.stdout
 
 
