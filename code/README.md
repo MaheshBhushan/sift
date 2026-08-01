@@ -79,6 +79,15 @@ are filtered against what was actually retrieved, so the output can never cite a
 
 ## Running it
 
+**ffmpeg** must be on `PATH` before the image pre-pass will run. It is a system binary, not a
+Python package, so `requirements.txt` cannot install it — use `apt install ffmpeg`,
+`brew install ffmpeg`, or the equivalent. `media.py` shells out to it to transcode images the
+API will not accept, and `dataset/media/images/img_020.jpg` is AVIF despite its extension, so
+every full run needs it. Without it the pre-pass now stops with a message naming the file.
+
+The voice path does not need the binary: faster-whisper decodes through PyAV, whose wheels
+ship their own ffmpeg libraries.
+
 ```bash
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY=...        # or put it in ../.env

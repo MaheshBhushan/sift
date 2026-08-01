@@ -8,6 +8,7 @@ Both are cached to cache/*.json, so the pre-pass is paid exactly once.
 """
 import base64
 import json
+import shutil
 import subprocess
 import sys
 
@@ -53,7 +54,13 @@ def _prepare(path):
         return "image/webp", data
     if data[:3] == b"\xff\xd8\xff":
         return "image/jpeg", data
-    # Anything else (AVIF/HEIC) -- transcode to PNG with ffmpeg.
+    # Anything else (AVIF/HEIC) -- transcode to PNG with ffmpeg. Not a rare branch:
+    # img_020.jpg is AVIF, so every full run lands here at least once.
+    if shutil.which("ffmpeg") is None:
+        raise SystemExit(
+            f"{path.name} is not a format the API accepts and needs transcoding, "
+            "but ffmpeg is not installed. See the prerequisites in code/README.md."
+        )
     out = subprocess.run(
         ["ffmpeg", "-loglevel", "error", "-i", str(path), "-f", "image2", "-c:v", "png", "-"],
         capture_output=True,
