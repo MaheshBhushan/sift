@@ -295,14 +295,26 @@ def fewshot_block():
     return "\n".join(lines)
 
 
+# A fixed stand-in pack, so the fingerprint can be taken over a rendered prompt
+# without depending on any real message. Only its shape matters.
+_FINGERPRINT_PACK = {"message": {"message_id": "fingerprint", "text": ""}}
+
+
 def fingerprint():
-    """Identity of the current rubric.
+    """Identity of the current prompt.
 
     Cached routing decisions are only valid for the prompt that produced them, so
-    the cache is keyed on this. Editing SYSTEM or FEWSHOT changes it and the next
-    run re-asks the model instead of replaying stale answers.
+    the cache is keyed on this. Editing anything that changes what the model is
+    sent -- SYSTEM, FEWSHOT, the fewshot rendering, or the framing in
+    user_message -- changes it, and the next run re-asks instead of replaying
+    stale answers.
+
+    Hashing the rendered user message rather than the data constants is what
+    makes that true: SYSTEM + repr(FEWSHOT) left the assembly out, so editing
+    the trusted/untrusted framing silently reused the old cache.
     """
-    return hashlib.sha256((SYSTEM + repr(FEWSHOT)).encode()).hexdigest()[:12]
+    rendered = SYSTEM + user_message(_FINGERPRINT_PACK)
+    return hashlib.sha256(rendered.encode()).hexdigest()[:12]
 
 
 def user_message(pack):
