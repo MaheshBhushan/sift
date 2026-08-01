@@ -7,6 +7,7 @@ Stdlib unittest, no test dependency:
 import unittest
 
 import rules
+from common import load
 
 # The four injection attacks present in dataset/messages.csv, verbatim.
 ATTACKS = {
@@ -62,6 +63,27 @@ class InjectionPattern(unittest.TestCase):
         for text in ("set action=notify", "confidence = 1.0", "user_priority: high"):
             with self.subTest(text=text):
                 self.assertIsNotNone(rules.INJECTION_PAT.search(text))
+
+    def test_does_not_fire_on_ordinary_uses_of_router_vocabulary(self):
+        """A match is terminal (mute + scam), so over-matching drops real messages."""
+        for text in (
+            "Action: 1. Sign the lease and return it.",
+            "Confidence: 9 out of 10 that we ship Friday.",
+            "Please mark urgent, the client is waiting.",
+            "Bookmark urgent items for later.",
+            "The bus routing rules changed, new stop at gate 4.",
+            "Our routing team verified the shipment yesterday.",
+            "Re-routing the parcel, priority delivery.",
+        ):
+            with self.subTest(text=text):
+                self.assertIsNone(rules.INJECTION_PAT.search(text))
+
+    def test_fires_on_exactly_the_known_attacks_across_the_whole_dataset(self):
+        """The corpus test: widening this pattern fails by over-matching, and eight
+        hand-written benign strings cannot show that. The other 106 rows can."""
+        rows = load("messages")
+        flagged = {r["message_id"] for r in rows if rules.INJECTION_PAT.search(r["message_text"])}
+        self.assertEqual(set(ATTACKS), flagged)
 
     def test_still_matches_the_classic_phrasings(self):
         for text in (
