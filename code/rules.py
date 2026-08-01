@@ -9,6 +9,7 @@ Two jobs only:
 Everything nuanced stays with the model; this layer is intentionally small.
 """
 import re
+import unicodedata
 
 ACTIONS = {"notify", "digest", "mute"}
 TYPES = {
@@ -55,9 +56,9 @@ ADVISORY_PAT = re.compile(
 INJECTION_PAT = re.compile(
     r"(ignore (?:all )?(?:previous|prior|above)|disregard (?:all )?(?:previous|prior)|"
     r"you are now|system prompt|"
-    r"\b(?:action|user_priority|verified_business)\s*[=:]\s*"
+    r"\b(?:action|user_priority|verified_business)\s*(?:[=:]|->)\s*[\"']?"
     r"(?:notify|digest|mute|high|true)|"
-    r"\bconfidence\s*[=:]\s*[01](?:\.\d+)?\b|"
+    r"\bconfidence\s*(?:[=:]|->)\s*[\"']?[01](?:\.\d+)?\b|"
     r"\bmark (?:this |it )?(?:message )?as (?:notify|urgent)|"
     r"\brout(?:er|ing)\b[^.\n]{0,40}?"
     r"\b(?:override|trusted|metadata)\b|"
@@ -67,11 +68,32 @@ INJECTION_PAT = re.compile(
 )
 
 
+# Zero-width characters an attacker can drop inside a keyword to break a token
+# match without changing how the text reads.
+_ZERO_WIDTH = dict.fromkeys(map(ord, "​‌‍⁠﻿"))
+
+
+def normalize_for_matching(text):
+    """Fold the text the pattern rules see, so evasion has to be visible.
+
+    The rules below match tokens, so an attacker who reads this file can defeat
+    them with characters the reader never notices: a fullwidth 'ａ', a zero-width
+    space inside "notify", a newline where a space belongs. NFKC folds the
+    compatibility forms, the translate drops the zero-width set, and collapsing
+    whitespace stops line breaks from splitting a keyword or widening the
+    proximity windows.
+
+    Homoglyphs from other scripts (Cyrillic 'а' for Latin 'a') are NOT folded by
+    NFKC and still evade this; that needs a confusables table, not normalization.
+    """
+    return re.sub(r"\s+", " ", unicodedata.normalize("NFKC", text).translate(_ZERO_WIDTH))
+
+
 def _text_of(pack):
     parts = [pack["message"].get("text") or ""]
     media = pack.get("media_understanding") or {}
     parts += [str(media.get("summary") or ""), str(media.get("visible_text") or "")]
-    return " ".join(parts)
+    return normalize_for_matching(" ".join(parts))
 
 
 def apply(pack, decision):
