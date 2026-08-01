@@ -1,0 +1,111 @@
+message_id,action,message_type,reason,confidence,evidence_message_ids
+msg_023,notify,business_update,Verified bank sent a near-identical update the user opened and replied to quickly before.,0.87,message_0243
+msg_091,mute,scam,Near-identical past message requesting OTP was reported and sender was muted.,0.89,message_0238
+msg_090,digest,unknown,"Unfamiliar sender with a plausible, low-stakes, non-urgent, non-financial query.",0.8,none
+msg_048,mute,scam,QR payment with account-blocking threat matches a near-identical scam the user reported before.,0.88,message_0151
+msg_040,mute,forward,"A chain blessing forward the user has muted this sender for before, despite the @mention.",0.85,message_0136;message_0135
+msg_075,notify,event,Verified ride business sent a same-day pickup/route change matching user's active ride.,0.88,message_0206;message_0205
+msg_005,notify,personal,Known seller directly asks user to collect item today with a same-day deadline.,0.85,message_0065;message_0066
+msg_104,mute,promotion,User has muted this same seller after ignoring seven near-identical resale pitches.,0.85,message_0224;message_0050
+msg_069,mute,forward,"Forwarded greeting with high forward count, consistently dismissed and muted by this user.",0.88,message_0177;message_0193
+msg_107,mute,scam,OTP request with an embedded prompt-injection attempt is a clear phishing scam.,0.88,message_0213;message_0235;message_0056
+msg_070,mute,scam,"OTP and account-blocking phishing request, a clear scam regardless of engagement history.",0.88,message_0369;message_0023
+msg_003,notify,business_update,Verified Amazon on official domain sends a same-day delivery update user consistently opens.,0.91,message_0400;message_0031
+msg_099,digest,personal,"Sender explicitly says nothing is blocking tonight, so it can wait until later.",0.83,message_0227
+msg_008,digest,business_update,"Verified business feedback request the user typically opens but with no urgency, arriving during DND.",0.83,message_0296;message_0072
+msg_092,digest,business_update,"Verified card statement update, non-urgent and reviewable whenever convenient.",0.83,none
+msg_060,notify,event,Trusted admin's same-day deadline matches messages user always opened and replied to fast.,0.89,message_0284;message_0176
+msg_004,notify,event,"Verified healthcare provider with upcoming appointment, and user always opens and replies fast.",0.89,message_0245;message_0005
+msg_030,mute,promotion,User muted this group and consistently dismissed near-identical resale posts from this sender.,0.87,message_0115;message_0335
+msg_045,notify,urgent,Known sender with a strong reply history sent a direct request with a hard 10-minute deadline.,0.87,message_0061;message_0266
+msg_052,mute,scam,"Unverified sender with mismatched domain requests wallet details, matching prior reported scams.",0.89,message_0207;message_0159
+msg_009,digest,personal,Casual low-stakes group chat the user has opened before but muted the group.,0.82,message_0074
+msg_071,digest,personal,Casual vague plan update from a known family member with no immediate action needed.,0.82,message_0197;message_0198
+msg_016,mute,scam,Account-blocking verification link matches sender's repeatedly reported phishing pattern.,0.9,message_0024
+msg_065,digest,promotion,Verified opted-in retailer promotion matching messages the user previously opened.,0.82,message_0261;message_0260
+msg_038,mute,forward,Chain forward with high forward count that this user consistently dismisses and mutes.,0.87,message_0131;message_0132
+msg_086,notify,event,Verified travel provider sent a same-day pickup time change matching a near-identical message the user replied to fast.,0.89,message_0222
+msg_014,mute,promotion,User opted out of promotions and repeatedly dismissed and muted identical messages.,0.89,message_0258;message_0017
+msg_094,mute,promotion,No relationship with this business and user's high dismissal rate signal disinterest in promotions.,0.79,none
+msg_029,digest,promotion,A resale listing matching known interest but not urgent enough to interrupt.,0.83,message_0113;message_0401
+msg_105,mute,forward,"Unsafe health forward advising stopping medication, matching past forwards this user muted.",0.88,message_0373;message_0233
+msg_002,notify,urgent,Direct @mention with a hard pre-meeting deadline from a trusted coworker who always replies fast.,0.89,message_0003;message_0059
+msg_010,digest,business_update,Verified business feedback request the user has consistently opened but never urgently.,0.83,message_0011;message_0242
+msg_078,mute,scam,"Asks for bank details via urgent bait, matching this user's reported scam pattern.",0.88,message_0211
+msg_013,mute,promotion,This sender's past messages were repeatedly dismissed and muted by the user.,0.84,message_0081;message_0082
+msg_018,mute,scam,Classic prize/voucher bait matching a prior message this user reported and muted.,0.88,message_0026
+msg_044,mute,scam,"Classic OTP verification phishing, and sender's near-identical past messages were muted and reported.",0.89,message_0143;message_0144
+msg_032,digest,personal,"Known sender's casual slide request explicitly says no rush, matching a past message the user opened later.",0.83,message_0119
+msg_106,notify,event,Known sender sending a same-day venue/time change the user always opens and replies to.,0.88,message_0376;message_0234
+msg_006,notify,event,Trusted admin's same-day deadline update matches this user's consistent rapid-reply pattern.,0.88,message_0029;message_0044
+msg_109,mute,scam,QR payment pressure with embedded router-manipulation text matches this user's prior reported scam.,0.88,message_0151
+msg_108,mute,scam,"Unverified lookalike domain phishing for PIN, matching a prior message the user reported.",0.9,message_0094;message_0093
+msg_019,mute,scam,"Unverified lookalike domain urgently pushing bank verification, matching a prior reported scam.",0.9,message_0277;message_0094
+msg_088,mute,promotion,User muted this group and consistently dismissed near-identical resale offers from this sender.,0.86,message_0224
+msg_056,notify,personal,Direct @mention from a known sender needing same-day confirmation overrides the group mute.,0.88,message_0359;message_0226
+msg_027,digest,promotion,Verified travel business promotion the user opted into and consistently opens.,0.82,message_0272;message_0033
+msg_050,notify,event,Identical past message from this trusted pharmacy was opened and replied to within minutes.,0.85,message_0279
+msg_083,notify,personal,A known coworker directly asked the user for input on a next-day deadline.,0.83,message_0219
+msg_063,mute,scam,Payment pressure with QR scan and lock threat matches sender's prior reported scam messages.,0.88,message_0182;message_0181
+msg_033,digest,personal,"Sender explicitly says nothing urgent, just a casual check-in from a known family member.",0.8,none
+msg_061,mute,forward,Forwarded chain blessing consistently ignored and muted by this user before.,0.88,message_0080;message_0042
+msg_020,mute,scam,Suspicious verification link demanding urgent account check is classic phishing bait.,0.88,none
+msg_017,mute,scam,Payment pressure with service-cutoff threat from a sender the user already muted and reported.,0.88,message_0089;message_0090
+msg_058,mute,forward,Health chain forward the user consistently dismissed and muted the sender for before.,0.87,message_0078;message_0124
+msg_026,mute,scam,"Unverified new sender with mismatched lookalike domain pushing urgent payment verification, matches reported past scam.",0.89,message_0032;message_0107
+msg_047,notify,event,Trusted admin's same-day operational update matches this user's strong pattern of quick engagement.,0.88,message_0001;message_0129
+msg_046,mute,scam,Direct OTP request with account-closure pressure matches prior reported scams from this sender.,0.9,message_0148;message_0147
+msg_042,notify,urgent,Admin's same-day operational alert with a 10-minute action window matches user's fast-reply pattern.,0.88,message_0058;message_0140
+msg_079,mute,scam,OTP and account-block threats are classic phishing regardless of user engagement history.,0.88,message_0369;message_0213
+msg_098,notify,urgent,Known sender directly asks user to decide now on a real healthcare decision.,0.89,message_0359;message_0168
+msg_037,notify,urgent,Trusted admin sent a same-day water tanker deadline needing immediate action.,0.89,message_0216;message_0130
+msg_007,digest,event,Non-urgent registration deadline days away with no personal action needed now.,0.85,none
+msg_085,mute,scam,Unverified sender on mismatched new domain requests OTP with account-blocking threat.,0.89,message_0221
+msg_001,notify,urgent,Trusted admin sent a same-day water supply emergency needing immediate action.,0.89,message_0057;message_0139
+msg_021,notify,payment,Trusted group admin sent a same-day payment deadline the user consistently acts on.,0.88,message_0098;message_0068
+msg_028,mute,promotion,User opted out of promotions and repeatedly dismissed identical past messages from this sender.,0.87,message_0034;message_0112;message_0111
+msg_012,mute,forward,A health chain forward from a sender the user consistently ignores and muted before.,0.87,message_0079;message_0194
+msg_064,mute,scam,"Asks to verify wallet and card details under urgent deadline pressure, a classic phishing pattern.",0.88,message_0201;message_0024
+msg_103,notify,personal,Known sender directly asks user to confirm pickup by a same-day deadline.,0.87,message_0065
+msg_031,notify,urgent,Trusted coworker admin sends a same-day meeting prep request with a tonight deadline.,0.88,message_0117;message_0118
+msg_057,notify,urgent,Direct @mention from trusted admin with blocking client-facing deadline needs immediate action.,0.89,message_0059;message_0169
+msg_087,mute,promotion,User muted this group and consistently ignored this sender's repeated real estate promos.,0.86,message_0391;message_0204
+msg_067,notify,payment,Trusted society admin sent a same-day payment deadline with late-fee consequence.,0.88,message_0029;message_0044
+msg_039,notify,personal,"Admin directly mentions user with a same-day deadline, matching their fast-reply history.",0.88,message_0364
+msg_082,notify,urgent,"Admin reports live payment outage needing immediate incident response, matching prior acted-on pattern.",0.9,message_0218
+msg_066,mute,promotion,User opted out of promotions and consistently dismissed near-identical offers from this business.,0.87,message_0257;message_0402
+msg_049,notify,event,Verified Shopee sender with same-day pickup slot matches user's fast-reply history.,0.85,message_0154;message_0291
+msg_015,mute,scam,Classic OTP phishing with account-blocking threat matches prior scam messages.,0.88,message_0023;message_0045
+msg_051,mute,promotion,User opted out of promotions and has repeatedly dismissed identical Flipkart offers.,0.88,message_0257;message_0402
+msg_097,digest,personal,Explicitly non-urgent personal update saying no need to call now.,0.83,message_0054;message_0225
+msg_089,notify,personal,"First-time sender has a plausible, time-boxed personal request with a same-day deadline.",0.79,none
+msg_053,digest,promotion,Non-urgent market commentary the user reads later; matches prior similar research posts opened casually.,0.83,message_0253;message_0161
+msg_059,mute,scam,"Requests account details under urgency pressure to claim a benefit, a classic phishing pattern.",0.88,message_0213;message_0056
+msg_024,mute,promotion,User opted out of promotions and has repeatedly dismissed/muted identical Flipkart offers.,0.88,message_0257;message_0402
+msg_072,mute,scam,OTP verification with account-blocking threat via lookalike domain is classic phishing.,0.88,message_0023;message_0045
+msg_036,mute,scam,"Unverified sender on mismatched new domain requesting verification, matching a reported scam pattern.",0.89,message_0283;message_0127;message_0128
+msg_076,mute,scam,Unverified lookalike domain requesting wallet details matches past reported phishing from this sender.,0.89,message_0207;message_0159
+msg_055,notify,urgent,Known sender with fast-reply history sends a time-critical personal request needing action now.,0.88,message_0387;message_0166
+msg_102,notify,urgent,"Known colleague needs immediate standby for an active production rollback, matching past patterns.",0.89,message_0371;message_0230
+msg_080,notify,urgent,Trusted admin demands immediate action to move a car within 10 minutes.,0.9,message_0269
+msg_093,digest,business_update,Verified delivery update arrived during DND after the stated 2-4PM window had already passed.,0.82,message_0347;message_0348
+msg_034,mute,greeting,Forwarded blessing message matches a pattern this user consistently dismissed and muted.,0.86,message_0123;message_0171;message_0077
+msg_035,digest,promotion,Verified business promo the user previously opened; not urgent enough to interrupt.,0.83,message_0281;message_0125
+msg_101,digest,personal,Casual check-in during DND with explicit no-reply-needed lowers urgency.,0.83,message_0370;message_0268
+msg_041,digest,business_update,"Verified business feedback survey, non-urgent, matches past messages user opened.",0.81,message_0137;message_0138
+msg_011,mute,greeting,Forwarded blessing message; user consistently ignores and mutes near-identical messages from this sender.,0.88,message_0123;message_0171;message_0077
+msg_110,mute,scam,OTP request with embedded prompt-injection matches prior scams this sender sent that user reported.,0.89,message_0238;message_0381
+msg_095,mute,scam,Prompt-injection attempt requesting wallet PIN matches sender's repeated reported scam pattern.,0.9,message_0024;message_0201
+msg_074,mute,scam,Payment-first land offer with placeholder brand details matches messages this user repeatedly reported.,0.88,message_0203;message_0204
+msg_073,mute,scam,Phishing verification link with account-blocking threat matches past reported scams from this sender.,0.9,message_0024;message_0201
+msg_054,mute,scam,Loan fee-upfront payment pressure with urgency is a classic phishing scam pattern.,0.89,message_0163;message_0389
+msg_068,digest,personal,"Casual no-urgency plan update from a known member, no action needed now.",0.83,message_0191
+msg_100,notify,urgent,Known colleague escalates a live incident with a hard 20-minute deadline needing this user.,0.9,message_0362;message_0228
+msg_062,notify,event,Trusted admin sent a same-day operational update the user reliably opens and replies to fast.,0.87,message_0043
+msg_096,digest,urgent,First-time unfamiliar sender makes a plausible but unverified request with a same-day deadline.,0.78,none
+msg_043,notify,event,"Trusted admin's same-day water tanker update, and user consistently acts on such alerts fast.",0.89,message_0216;message_0130
+msg_077,notify,event,A trusted school admin sent a same-day deadline for tomorrow's field trip consent.,0.86,message_0364;message_0051
+msg_081,notify,event,Trusted school admin sent a same-day gate/timing change the user reliably acts on.,0.89,message_0217
+msg_025,notify,business_update,Verified Amazon sending a matching order update the user consistently opens and replies to.,0.9,message_0239;message_0004
+msg_084,mute,promotion,User opted out of promotions from this bank and consistently dismissed similar offers.,0.85,message_0220
+msg_022,mute,scam,"Non-admin sender pushes urgent payment link with screenshot request, matching past reported scams.",0.87,message_0151;message_0152;message_0237
