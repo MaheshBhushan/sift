@@ -41,15 +41,27 @@ ADVISORY_PAT = re.compile(
 # override" is not "routing rules"; "system note" is not "system prompt"), so
 # match the shape -- router fields set like arguments, or router/routing sitting
 # next to the lever the attacker wants pulled.
+#
+# The shape has to stay narrow in three places, because a match here is terminal
+# (mute + scam), so a false positive silently drops a real message:
+#   - values are typed per field. An action is a word; only confidence is a
+#     number, and only ever 0-1. Accepting any digit for any field made
+#     "Action: 1. Sign the lease" an injection.
+#   - "mark ... as" keeps its "as". Without it the rule collapses to the bigram
+#     "mark urgent", which is a normal thing to ask a colleague.
+#   - the proximity levers are router-specific nouns only. "rules", "notify",
+#     "priority" and "verified" all read as ordinary logistics vocabulary next
+#     to "routing", and muted delivery updates as scams.
 INJECTION_PAT = re.compile(
     r"(ignore (?:all )?(?:previous|prior|above)|disregard (?:all )?(?:previous|prior)|"
     r"you are now|system prompt|"
-    r"\b(?:action|confidence|user_priority|verified_business)\s*[=:]\s*"
-    r"(?:notify|digest|mute|high|true|\d)|"
-    r"mark (?:this |it )?(?:message )?(?:as )?(?:notify|urgent)|"
-    r"\brout(?:er|ing)\b[^.]{0,40}?"
-    r"\b(?:override|rules?|notify|priority|trusted|verified|metadata)\b|"
-    r"\b(?:override|rules?|notify|priority|trusted|verified|metadata)\b[^.]{0,40}?"
+    r"\b(?:action|user_priority|verified_business)\s*[=:]\s*"
+    r"(?:notify|digest|mute|high|true)|"
+    r"\bconfidence\s*[=:]\s*[01](?:\.\d+)?\b|"
+    r"\bmark (?:this |it )?(?:message )?as (?:notify|urgent)|"
+    r"\brout(?:er|ing)\b[^.\n]{0,40}?"
+    r"\b(?:override|trusted|metadata)\b|"
+    r"\b(?:override|trusted|metadata)\b[^.\n]{0,40}?"
     r"\brout(?:er|ing)\b)",
     re.I,
 )
