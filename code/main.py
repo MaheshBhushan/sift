@@ -17,9 +17,9 @@ from common import DATA, load
 OUT_COLUMNS = ["message_id", "action", "message_type", "reason", "confidence", "evidence_message_ids"]
 
 
-def media_lookup():
+def media_lookup(use_cache=True):
     """Ensure the media caches exist, then index them by media_id."""
-    images = media_mod.describe_images(load("images"), verbose=False)
+    images = media_mod.describe_images(load("images"), verbose=False, use_cache=use_cache)
     voices = media_mod.transcribe_voice(load("voice_notes"), verbose=False)
     return {**images, **voices}
 
@@ -131,7 +131,7 @@ def main():
     args = ap.parse_args()
 
     print("Media pre-pass...", flush=True)
-    media = media_lookup()
+    media = media_lookup(use_cache=not args.no_cache)
 
     rows = load("sample_messages" if args.eval else "messages")
     if args.limit:
