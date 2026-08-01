@@ -69,12 +69,23 @@ def _prepare(path):
     return "image/png", out.stdout
 
 
-def describe_images(image_rows, verbose=True):
+def _usable(entry):
+    """A cached description worth reusing.
+
+    A degraded entry is a parse failure that was written to disk so the current
+    run had something to work with, not an answer. Treating it as a hit made the
+    failure permanent: the image kept its empty risk_cues on every later run and
+    nothing ever re-asked.
+    """
+    return bool(entry) and not entry.get("degraded")
+
+
+def describe_images(image_rows, verbose=True, use_cache=True):
     cache = JsonCache("images.json")
     client = None
     for row in image_rows:
         iid = row["image_id"]
-        if cache.get(iid):
+        if use_cache and _usable(cache.get(iid)):
             continue
         client = client or _client()
         media_type, raw_bytes = _prepare(DATA / row["file_path"])
@@ -99,7 +110,15 @@ def describe_images(image_rows, verbose=True):
         try:
             parsed = json.loads(raw[raw.index("{") : raw.rindex("}") + 1])
         except (ValueError, json.JSONDecodeError):
-            parsed = {"kind": "other", "summary": raw[:400], "risk_cues": []}
+            # The stub carries none of the risk fields the prompt asks for, so the
+            # router scores this image as though it showed nothing alarming. Mark
+            # it so the next run re-asks instead of inheriting that silently.
+            parsed = {"kind": "other", "summary": raw[:400], "risk_cues": [], "degraded": True}
+            print(
+                f"  image {iid}: vision response did not parse; cached without risk "
+                f"cues and will be retried on the next run",
+                file=sys.stderr,
+            )
         parsed["modality"] = "image"
         cache.set(iid, parsed)
         if verbose:
