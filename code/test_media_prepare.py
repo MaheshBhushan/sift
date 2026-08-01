@@ -25,7 +25,19 @@ class PrepareSniffing(unittest.TestCase):
         run.assert_not_called()
 
 
-class PrepareWithoutFfmpeg(unittest.TestCase):
+class PrepareTranscodeFailures(unittest.TestCase):
+    """These exercise the transcode, so the binary must look present.
+
+    Without stubbing which(), the guard above fires first and these test the
+    wrong branch -- and fail outright on a machine that has no ffmpeg, which
+    the rest of this suite is careful not to require.
+    """
+
+    def setUp(self):
+        patcher = mock.patch.object(media.shutil, "which", return_value="/usr/bin/ffmpeg")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_a_transcode_failure_reports_what_ffmpeg_said(self):
         """CalledProcessError alone says only "non-zero exit status 1"."""
         failure = subprocess.CalledProcessError(
@@ -56,6 +68,8 @@ class PrepareWithoutFfmpeg(unittest.TestCase):
 
         self.assertEqual(run.call_args.kwargs["timeout"], media.TRANSCODE_TIMEOUT_S)
 
+
+class PrepareWithoutFfmpeg(unittest.TestCase):
     def test_missing_ffmpeg_names_the_file_and_the_binary(self):
         with mock.patch.dict(os.environ, {"PATH": ""}):
             with self.assertRaises(SystemExit) as caught:
