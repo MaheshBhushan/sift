@@ -36,10 +36,21 @@ ADVISORY_PAT = re.compile(
     r"we will never)",
     re.I,
 )
+# Injection is a structure, not a phrasing: an imperative written in the router's
+# own vocabulary. Enumerating wordings misses the next paraphrase ("routing
+# override" is not "routing rules"; "system note" is not "system prompt"), so
+# match the shape -- router fields set like arguments, or router/routing sitting
+# next to the lever the attacker wants pulled.
 INJECTION_PAT = re.compile(
     r"(ignore (?:all )?(?:previous|prior|above)|disregard (?:all )?(?:previous|prior)|"
-    r"you are now|system prompt|mark this (?:message )?as (?:notify|urgent)|"
-    r"routing rules)",
+    r"you are now|system prompt|"
+    r"\b(?:action|confidence|user_priority|verified_business)\s*[=:]\s*"
+    r"(?:notify|digest|mute|high|true|\d)|"
+    r"mark (?:this |it )?(?:message )?(?:as )?(?:notify|urgent)|"
+    r"\brout(?:er|ing)\b[^.]{0,40}?"
+    r"\b(?:override|rules?|notify|priority|trusted|verified|metadata)\b|"
+    r"\b(?:override|rules?|notify|priority|trusted|verified|metadata)\b[^.]{0,40}?"
+    r"\brout(?:er|ing)\b)",
     re.I,
 )
 
