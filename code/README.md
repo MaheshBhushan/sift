@@ -90,6 +90,17 @@ python main.py --dump traces.json    # full per-message context + decision trace
 Media and routing results are cached under `cache/`, so re-runs are free and reproducible;
 `--no-cache` forces fresh calls. Cost for a full run: 110 routing calls + 20 vision calls.
 
+The routing cache is keyed on the model **and** a fingerprint of the rubric
+(`prompt.fingerprint()`), so editing `prompt.py` invalidates it automatically instead of
+replaying decisions made under the old prompt. Caches from superseded rubrics are left on disk
+rather than deleted; remove them by hand when you no longer want them.
+
+Tests (stdlib `unittest`, no test dependency):
+
+```bash
+cd code && python -m unittest discover -p 'test_*.py' -v
+```
+
 ## Results on the labelled samples
 
 | Metric | Score |
