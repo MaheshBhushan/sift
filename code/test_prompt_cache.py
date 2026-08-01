@@ -21,6 +21,30 @@ class PromptFingerprint(unittest.TestCase):
             self.assertNotEqual(before, prompt.fingerprint())
         self.assertEqual(before, prompt.fingerprint())
 
+    def test_changes_when_the_prompt_assembly_changes(self):
+        """SYSTEM and FEWSHOT are not the whole prompt.
+
+        fewshot_block() and user_message() contribute their own literal text --
+        the examples header and the trusted/untrusted framing. Hashing only the
+        two data constants left those edits invisible, so tuning the framing
+        replayed decisions taken under the old wording.
+        """
+        before = prompt.fingerprint()
+        original = prompt.user_message
+
+        def reworded(pack):
+            return "Reworded framing.\n" + original(pack)
+
+        with patch.object(prompt, "user_message", reworded):
+            self.assertNotEqual(before, prompt.fingerprint())
+        self.assertEqual(before, prompt.fingerprint())
+
+    def test_does_not_change_with_the_message_being_routed(self):
+        """It identifies the prompt, not the traffic: the stand-in pack is fixed."""
+        before = prompt.fingerprint()
+        prompt.user_message({"message": {"message_id": "msg_999", "text": "anything"}})
+        self.assertEqual(before, prompt.fingerprint())
+
     def test_changes_when_examples_change(self):
         before = prompt.fingerprint()
         extra = prompt.FEWSHOT + [("a new situation", {"action": "mute"})]
