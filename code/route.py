@@ -10,12 +10,19 @@ from common import JsonCache, api_key
 
 MODEL = "claude-sonnet-5"
 MAX_TOKENS = 1200
-MAX_ATTEMPTS = 4
 # A malformed response is usually the same pack hitting the same ceiling, not bad
 # luck: a prompt that overruns max_tokens truncates identically every time. Give
-# it the one retry the original code had rather than the full ladder, so a
-# systematic format regression costs 2 calls per message instead of 4.
+# it one retry, so a systematic format regression costs 2 calls per message
+# rather than a full ladder of them.
 BAD_JSON_ATTEMPTS = 2
+# Transport retries belong to the SDK, not to us. It already parses retry-after
+# and retry-after-ms, falls back to a jittered backoff, and knows which statuses
+# are worth repeating -- all of which a fixed 2**attempt ladder here got wrong,
+# most visibly on a 429 whose reset window is longer than the 7s we would wait.
+# Raised above the SDK default of 2 because a single 110-message run should
+# survive a rate-limit window rather than dying partway through, which is the
+# whole point of retrying at this layer.
+API_MAX_RETRIES = 5
 
 
 class MalformedResponse(ValueError):
@@ -30,14 +37,6 @@ class MalformedResponse(ValueError):
 # Malformed JSON in an otherwise well-formed response -- the SDK cannot see these,
 # so they are ours to retry.
 BAD_JSON = (json.JSONDecodeError, MalformedResponse, IndexError)
-# Transient API failures worth another attempt. Deliberately not the whole of
-# anthropic.APIError: a 400 or a 401 will fail identically every time, and
-# retrying one just burns the backoff before raising the same thing.
-TRANSIENT_API = (
-    anthropic.RateLimitError,
-    anthropic.InternalServerError,
-    anthropic.APIConnectionError,
-)
 
 
 def _text(resp):
@@ -47,7 +46,7 @@ def _text(resp):
 
 class Router:
     def __init__(self, model=MODEL, use_cache=True):
-        self.client = anthropic.Anthropic(api_key=api_key())
+        self.client = anthropic.Anthropic(api_key=api_key(), max_retries=API_MAX_RETRIES)
         self.model = model
         # Keyed on the rubric as well as the model: a decision cached under an
         # older prompt is not a valid answer for the current one.
@@ -78,25 +77,22 @@ class Router:
         return json.loads(raw[raw.index("{") : raw.rindex("}") + 1])
 
     def _ask_retrying(self, pack):
-        """One call per message across a 110-message run, so a single transient
-        failure must not take the whole run down. Backs off between attempts.
+        """Retries a malformed response, and only that.
 
-        The two failure classes get different budgets on purpose. A transient API
-        error is worth waiting out. A malformed response usually is not: the same
-        pack overruns max_tokens the same way every time, so retrying it four
-        times just bills four calls to arrive at the same exception.
+        Transport failures are the SDK's job (API_MAX_RETRIES), so this loop no
+        longer catches them. It used to, on top of the SDK's own retries, which
+        multiplied out to as many as twelve attempts for one message on a
+        sustained rate limit while MAX_ATTEMPTS = 4 sat in the source implying
+        four.
+
+        A malformed response is worth exactly one more try: the same pack
+        overruns max_tokens the same way every time.
         """
-        json_failures = 0
-        for attempt in range(MAX_ATTEMPTS):
+        for attempt in range(BAD_JSON_ATTEMPTS):
             try:
                 return self._ask(pack)
             except BAD_JSON:
-                json_failures += 1
-                if json_failures >= BAD_JSON_ATTEMPTS or attempt == MAX_ATTEMPTS - 1:
-                    raise
-                time.sleep(2**attempt)
-            except TRANSIENT_API:
-                if attempt == MAX_ATTEMPTS - 1:
+                if attempt == BAD_JSON_ATTEMPTS - 1:
                     raise
                 time.sleep(2**attempt)
 

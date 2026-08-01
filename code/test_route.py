@@ -9,7 +9,7 @@ from unittest import mock
 import anthropic
 import httpx
 
-from route import BAD_JSON_ATTEMPTS, MAX_ATTEMPTS, MalformedResponse, Router
+from route import API_MAX_RETRIES, BAD_JSON_ATTEMPTS, MalformedResponse, Router
 
 
 def _router():
@@ -51,15 +51,22 @@ class AskRetryingTest(unittest.TestCase):
         self.assertEqual(router._ask.call_count, 1)
         self.sleep.assert_not_called()
 
-    def test_recovers_from_transient_api_errors(self):
-        """The regression: these used to propagate and kill the run."""
+    def test_leaves_transport_failures_to_the_sdk(self):
+        """These are retried inside client.messages.create, not here.
+
+        Doing both multiplied out to as many as twelve attempts for one message,
+        with a fixed 1/2/4s ladder that ignored retry-after -- shorter than any
+        real rate-limit window. The SDK parses retry-after and jitters.
+        """
         for error in (_rate_limit(), _overloaded(), _connection()):
             with self.subTest(error=type(error).__name__):
                 router = _router()
-                router._ask = mock.Mock(side_effect=[error, {"action": "notify"}])
+                router._ask = mock.Mock(side_effect=error)
 
-                self.assertEqual(router._ask_retrying({}), {"action": "notify"})
-                self.assertEqual(router._ask.call_count, 2)
+                with self.assertRaises(type(error)):
+                    router._ask_retrying({})
+                self.assertEqual(router._ask.call_count, 1)
+                self.sleep.assert_not_called()
 
     def test_recovers_from_bad_json(self):
         router = _router()
@@ -71,14 +78,13 @@ class AskRetryingTest(unittest.TestCase):
         self.assertEqual(router._ask.call_count, 2)
 
     def test_gives_up_on_malformed_responses_after_one_retry(self):
-        """A truncated response repeats; four attempts just bill four calls."""
+        """A truncated response repeats; further attempts just bill more calls."""
         router = _router()
         router._ask = mock.Mock(side_effect=MalformedResponse("no JSON in response"))
 
         with self.assertRaises(MalformedResponse):
             router._ask_retrying({})
         self.assertEqual(router._ask.call_count, BAD_JSON_ATTEMPTS)
-        self.assertLess(router._ask.call_count, MAX_ATTEMPTS)
 
     def test_does_not_retry_a_plain_value_error(self):
         """Only a malformed *response* is retryable; a ValueError from building
@@ -90,22 +96,22 @@ class AskRetryingTest(unittest.TestCase):
             router._ask_retrying({})
         self.assertEqual(router._ask.call_count, 1)
 
-    def test_backs_off_exponentially_between_attempts(self):
+    def test_sleeps_once_between_the_two_json_attempts(self):
         router = _router()
-        router._ask = mock.Mock(side_effect=[_rate_limit(), _rate_limit(), {"action": "notify"}])
+        router._ask = mock.Mock(
+            side_effect=[MalformedResponse("no JSON"), {"action": "notify"}]
+        )
 
         router._ask_retrying({})
-        self.assertEqual([c.args[0] for c in self.sleep.call_args_list], [1, 2])
+        self.assertEqual([c.args[0] for c in self.sleep.call_args_list], [1])
 
-    def test_raises_after_max_attempts(self):
-        router = _router()
-        router._ask = mock.Mock(side_effect=_rate_limit())
-
-        with self.assertRaises(anthropic.RateLimitError):
-            router._ask_retrying({})
-        self.assertEqual(router._ask.call_count, MAX_ATTEMPTS)
-        # No sleep after the final failure.
-        self.assertEqual(self.sleep.call_count, MAX_ATTEMPTS - 1)
+    def test_configures_the_sdk_to_own_transport_retries(self):
+        with mock.patch("route.anthropic.Anthropic") as client, mock.patch(
+            "route.api_key", return_value="k"
+        ), mock.patch("route.JsonCache"):
+            Router()
+        self.assertEqual(client.call_args.kwargs["max_retries"], API_MAX_RETRIES)
+        self.assertGreater(API_MAX_RETRIES, 2, "must exceed the SDK default to be worth setting")
 
     def test_does_not_retry_non_transient_api_errors(self):
         """A 401 fails identically every time; retrying just burns the backoff."""
