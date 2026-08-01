@@ -14,7 +14,7 @@ import sys
 
 import anthropic
 
-from common import DATA, JsonCache, api_key
+from common import API_MAX_RETRIES, DATA, JsonCache, api_key
 
 VISION_MODEL = "claude-sonnet-5"
 # A still image transcodes in well under a second; anything approaching this is
@@ -42,7 +42,9 @@ VOICE_PROMPT_NOTE = "Transcript of a WhatsApp voice note."
 
 
 def _client():
-    return anthropic.Anthropic(api_key=api_key())
+    # Same retry budget as the router: this pre-pass gates the whole run, so it
+    # has to survive a rate-limit window too.
+    return anthropic.Anthropic(api_key=api_key(), max_retries=API_MAX_RETRIES)
 
 
 def _prepare(path):

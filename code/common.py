@@ -41,6 +41,19 @@ def i(row, key, default=0):
         return default
 
 
+# Transport retries belong to the SDK, not to us. It already parses retry-after
+# and retry-after-ms, falls back to a jittered backoff, and knows which statuses
+# are worth repeating -- all of which a fixed 2**attempt ladder got wrong, most
+# visibly on a 429 whose reset window is longer than the 7s we would wait.
+# Raised above the SDK default of 2 because a single run should survive a
+# rate-limit window rather than dying partway through, which is the whole point
+# of retrying at this layer. It lives here rather than next to either client
+# because both stages are on the critical path of one run: the vision pre-pass
+# gates the routing pass, so a budget that only the router honoured would just
+# move the failure one stage earlier.
+API_MAX_RETRIES = 5
+
+
 def api_key():
     key = os.environ.get("ANTHROPIC_API_KEY")
     if key:
