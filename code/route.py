@@ -20,7 +20,9 @@ class Router:
     def __init__(self, model=MODEL, use_cache=True):
         self.client = anthropic.Anthropic(api_key=api_key())
         self.model = model
-        self.cache = JsonCache(f"routing_{model}.json") if use_cache else None
+        # Keyed on the rubric as well as the model: a decision cached under an
+        # older prompt is not a valid answer for the current one.
+        self.cache = JsonCache(f"routing_{model}_{prompt.fingerprint()}.json") if use_cache else None
         self.calls = 0
 
     def _ask(self, pack):

@@ -1,4 +1,5 @@
 """The routing rubric. This file is the product -- everything else is plumbing."""
+import hashlib
 import json
 
 SYSTEM = """You are the notification router for a WhatsApp-style messenger. For one \
@@ -292,6 +293,16 @@ def fewshot_block():
     for situation, out in FEWSHOT:
         lines.append(f"\nSITUATION: {situation}\nOUTPUT: {json.dumps(out)}")
     return "\n".join(lines)
+
+
+def fingerprint():
+    """Identity of the current rubric.
+
+    Cached routing decisions are only valid for the prompt that produced them, so
+    the cache is keyed on this. Editing SYSTEM or FEWSHOT changes it and the next
+    run re-asks the model instead of replaying stale answers.
+    """
+    return hashlib.sha256((SYSTEM + repr(FEWSHOT)).encode()).hexdigest()[:12]
 
 
 def user_message(pack):
