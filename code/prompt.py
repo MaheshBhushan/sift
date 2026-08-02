@@ -95,7 +95,8 @@ never suppresses a genuine emergency or a direct personal request.
 
 EVIDENCE. Cite from similar_past_messages only the message_ids that genuinely justify the \
 decision -- a near-duplicate the user ignored, a prior message in the same conversation that \
-establishes the pattern, or a matching earlier scam. One or two ids is normal. If nothing there \
+establishes the pattern, or a matching earlier scam. Cite every id that genuinely contributed, \
+not just the single strongest one -- two to four is normal. If nothing there \
 is genuinely relevant, write "none". Never invent an id.
 
 CONFIDENCE. Stay in 0.75-0.91. Use 0.86-0.91 only when every signal agrees, 0.80-0.85 for a \
