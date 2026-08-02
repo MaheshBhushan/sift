@@ -84,7 +84,15 @@ def validate(results, expected_ids):
     return problems
 
 
-def score(results, truth_rows):
+SCORES = ("action", "type", "both", "evidence")
+
+
+def score(results, truth_rows, verbose=True):
+    """Returns the scored rates, and prints the detail when asked.
+
+    Returning them rather than only printing is what lets --runs aggregate
+    several passes; the single-run output is unchanged.
+    """
     truth = {r["message_id"]: r for r in truth_rows}
     a_hit = t_hit = both = 0
     e_hit = e_total = 0
@@ -104,6 +112,11 @@ def score(results, truth_rows):
             mine = {x for x in d["evidence_message_ids"].split(";") if x != "none"}
             e_hit += bool(gold_ev & mine)
     n = len(results)
+    rates = {"action": a_hit / n, "type": t_hit / n, "both": both / n}
+    if e_total:
+        rates["evidence"] = e_hit / e_total
+    if not verbose:
+        return rates
     print(f"\naction accuracy      {a_hit}/{n} = {a_hit / n:.0%}")
     print(f"type accuracy        {t_hit}/{n} = {t_hit / n:.0%}")
     print(f"both correct         {both}/{n} = {both / n:.0%}")
@@ -118,7 +131,42 @@ def score(results, truth_rows):
                 f"  MISS {msg['message_id']}: gold {t['action']}/{t['message_type']} "
                 f"got {d['action']}/{d['message_type']} :: {d['reason']}"
             )
-    return both / n
+    return rates
+
+
+def eval_runs(rows, media, model, runs):
+    """`runs` independently sampled scored passes.
+
+    Repeats bypass the routing cache. Left on, run 2 would replay run 1 from
+    disk and every spread would come out as zero -- which is precisely the
+    illusion --runs exists to dispel. The media cache is untouched, so this
+    costs routing calls only.
+    """
+    per_run = []
+    for k in range(1, runs + 1):
+        router = route.Router(model=model, use_cache=False)
+        if runs > 1:
+            print(f"\n--- run {k}/{runs}", flush=True)
+        results = run(rows, router, media, verbose=runs == 1)
+        per_run.append(score(results, rows, verbose=runs == 1))
+    return per_run
+
+
+def report_spread(per_run):
+    """Mean and observed range per metric, so a delta can be read against noise."""
+    n = len(per_run)
+    print(f"\nacross {n} runs -- mean [min-max], spread:")
+    for key in SCORES:
+        vals = sorted(m[key] for m in per_run if key in m)
+        if not vals:
+            continue
+        mean = sum(vals) / len(vals)
+        lo, hi = vals[0], vals[-1]
+        print(f"  {key:<9} {mean:>5.0%}  [{lo:.0%}-{hi:.0%}], spread {hi - lo:.0%}")
+    print(
+        "\nA change smaller than the spread above is not resolvable by this eval.",
+        flush=True,
+    )
 
 
 def main():
@@ -128,7 +176,17 @@ def main():
     ap.add_argument("--model", default=route.MODEL)
     ap.add_argument("--no-cache", action="store_true")
     ap.add_argument("--dump", default="", help="write full decision traces to this JSON path")
+    ap.add_argument(
+        "--runs",
+        type=int,
+        default=1,
+        help="with --eval, score this many uncached passes and report mean and range",
+    )
     args = ap.parse_args()
+    if args.runs < 1:
+        ap.error("--runs must be at least 1")
+    if args.runs > 1 and not args.eval:
+        ap.error("--runs only applies to --eval; a routing run has nothing to average")
 
     print("Media pre-pass...", flush=True)
     media = media_lookup(use_cache=not args.no_cache)
@@ -136,6 +194,12 @@ def main():
     rows = load("sample_messages" if args.eval else "messages")
     if args.limit:
         rows = rows[: args.limit]
+
+    if args.runs > 1:
+        print(f"Scoring {len(rows)} rows x {args.runs} uncached runs with {args.model}...", flush=True)
+        report_spread(eval_runs(rows, media, args.model, args.runs))
+        return
+
     router = route.Router(model=args.model, use_cache=not args.no_cache)
 
     print(f"Routing {len(rows)} messages with {args.model}...", flush=True)
