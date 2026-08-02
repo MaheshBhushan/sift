@@ -87,23 +87,30 @@ Full design rationale, the rule table, and the failure cases that shaped each ru
 
 ## Results
 
-`python main.py --eval` scores the **15 rows of `dataset/sample_messages.csv` that the worked
-examples are not drawn from**. The other 15 are the few-shot source, so scoring them measures
-recall of what the model was already shown.
+`python main.py --eval --runs 3` scores the **15 rows of `dataset/sample_messages.csv` that the
+worked examples are not drawn from**, over three uncached passes. The other 15 are the few-shot
+source; scoring those measures recall of what the model was already shown, and `--eval-all` reports
+it separately.
 
 | Metric | Held-out 15 | Contaminated 30 |
 |---|---|---|
-| action accuracy | 15/15 | 30/30 |
-| message_type accuracy | 15/15 | 30/30 |
-| evidence overlap with gold | 13/15 | 22/28 |
-| retrieval recall of gold evidence | — | 27/28 |
+| action accuracy | 100% (15/15, no spread) | 99% (29/30 - 30/30) |
+| message_type accuracy | 100% (15/15, no spread) | 100% (30/30 - 30/30) |
+| evidence overlap with gold | 87% (13/15, no spread) | 85% (23/28 - 25/28) |
+| retrieval recall of gold evidence | — | 27/28, deterministic |
 
-**Read this honestly.** Holding the few-shot source out did not lower accuracy — which is not the
-result we expected from splitting it. But 15 rows means one flipped row is 6.7%, and the split
-decontaminates the *examples*, not the *rubric*: `SYSTEM` was written while looking at all 30
-labelled rows, so the held-out half still shaped the taxonomy even though it supplied no worked
-example. This is a better number than the old 100%, not a generalization guarantee. A genuinely
-unseen score needs labels this dataset does not provide.
+**Read this honestly.** Two things this table says that the previous single numbers did not:
+
+- **The contaminated set has a noise floor of 3% on action and 7% on evidence overlap.** A change
+  moving a metric by less than that is not resolvable — it cannot be told apart from run-to-run
+  variance. The old flat `30/30` was one pass presented as if it were exact.
+- **Holding the few-shot source out did not lower accuracy**, which is not what we expected from
+  splitting it. But 15 rows makes one flipped row 6.7%, three identical passes is three samples,
+  and the split decontaminates the *examples*, not the *rubric* — `SYSTEM` was written while
+  looking at all 30 labelled rows, so the held-out half still shaped the taxonomy.
+
+This is a better number than the old 100%, not a generalization guarantee. A genuinely unseen score
+needs labels this dataset does not provide.
 
 On the 110 unlabelled messages the distribution is notify 37 / digest 21 / mute 52, with 31 scams.
 The set is adversarial: OTP phishing, QR payment fraud, fake refund desks, and several

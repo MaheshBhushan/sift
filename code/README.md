@@ -93,8 +93,14 @@ pip install -r requirements.txt
 export ANTHROPIC_API_KEY=...        # or put it in ../.env
 python main.py                       # -> dataset/output.csv
 python main.py --eval                # score the 15 held-out labelled rows
+python main.py --eval --runs 3       # 3 uncached passes -> mean, range and noise floor
+python main.py --eval --eval-all     # all 30 rows incl. the few-shot source (contaminated)
 python main.py --dump traces.json    # full per-message context + decision traces
 ```
+
+`--runs N` bypasses the routing cache on every pass. Left cached, run 2 would replay run 1 from
+disk and every spread would report as 0%, which is the illusion the flag exists to dispel — so
+`--runs 3` costs three evals' worth of routing calls. The media cache is untouched.
 
 Media and routing results are cached under `cache/`, so re-runs are free and reproducible;
 `--no-cache` forces fresh calls. Cost for a full run: 110 routing calls + 20 vision calls.
@@ -115,19 +121,23 @@ cd code && python -m unittest discover -p 'test_*.py' -v
 `--eval` scores the **15 rows the worked examples are not drawn from**. The other 15 are the
 few-shot source; scoring those measures recall of what the model was shown, so that number cannot
 go down and is not an accuracy estimate. `--eval --eval-all` reports it anyway, with a warning.
+`--runs N` repeats the scoring over N uncached passes and reports the spread.
 
 | Metric | Held-out 15 | Contaminated 30 |
 |---|---|---|
-| action accuracy | 15/15 | 30/30 |
-| message_type accuracy | 15/15 | 30/30 |
-| evidence overlap with gold | 13/15 | 22/28 |
-| retrieval recall of gold evidence | — | 27/28 |
+| action accuracy | 100% (15/15, no spread) | 99% (29/30 - 30/30) |
+| message_type accuracy | 100% (15/15, no spread) | 100% (30/30 - 30/30) |
+| evidence overlap with gold | 87% (13/15, no spread) | 85% (23/28 - 25/28) |
+| retrieval recall of gold evidence | — | 27/28, deterministic |
 
-Three uncached passes over the held-out half returned identical figures each time.
+Both columns are three uncached passes. The held-out half returned identical figures every time.
 
-**Read this honestly.** Holding the few-shot source out did *not* lower accuracy, which is not what
-we expected when we split it. Three things temper that:
+**Read this honestly.** Four things temper this table:
 
+- **The contaminated set has a measurable noise floor** — 3% on action, 7% on evidence overlap. A
+  change moving a metric by less than its spread is not resolvable by this eval. The figures this
+  file used to carry (a flat `30/30`, `22/28`) were single passes presented as exact; three passes
+  do not reproduce either.
 - **15 rows is coarse.** One flipped row is 6.7%. Three passes showing zero variation is three
   samples, not evidence of stability.
 - **The split decontaminates the examples, not the rubric.** `SYSTEM` was iterated while looking at
