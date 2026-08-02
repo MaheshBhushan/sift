@@ -93,8 +93,13 @@ pip install -r requirements.txt
 export ANTHROPIC_API_KEY=...        # or put it in ../.env
 python main.py                       # -> dataset/output.csv
 python main.py --eval                # score against the 30 labelled samples
+python main.py --eval --runs 3       # 3 uncached passes -> mean, range and noise floor
 python main.py --dump traces.json    # full per-message context + decision traces
 ```
+
+`--runs N` bypasses the routing cache on every pass. Left cached, run 2 would replay run 1 from
+disk and every spread would report as 0%, which is the illusion the flag exists to dispel — so
+`--runs 3` costs three evals' worth of routing calls. The media cache is untouched.
 
 Media and routing results are cached under `cache/`, so re-runs are free and reproducible;
 `--no-cache` forces fresh calls. Cost for a full run: 110 routing calls + 20 vision calls.
@@ -112,14 +117,21 @@ cd code && python -m unittest discover -p 'test_*.py' -v
 
 ## Results on the labelled samples
 
-| Metric | Score |
-|---|---|
-| action accuracy | 30/30 |
-| message_type accuracy | 30/30 |
-| evidence overlap with gold | 22/28 |
-| retrieval recall of gold evidence | 27/28 |
+Scored with `python main.py --eval --runs 3` — three uncached passes, reported as mean and
+observed range rather than a single number.
 
-**Read this honestly:** those 30 rows are both the few-shot source and the eval set, so 100% is an
+| Metric | Mean | Observed range |
+|---|---|---|
+| action accuracy | 99% | 29/30 - 30/30 |
+| message_type accuracy | 100% | 30/30 - 30/30 |
+| evidence overlap with gold | 85% | 23/28 - 25/28 |
+| retrieval recall of gold evidence | 27/28 | deterministic, no model call |
+
+**The noise floor is 3% on action and 7% on evidence overlap.** One flipped row is 3.3% of the
+eval. A change that moves a metric by less than its spread is not resolvable by this eval, so
+`--runs` is the honest way to compare two versions of the prompt or the rules.
+
+**Read this honestly:** those 30 rows are both the few-shot source and the eval set, so ~100% is an
 optimistic ceiling, not an expected score on hidden labels. What the iterations actually fixed were
 general taxonomy boundaries (a same-day schedule change is `event`, not `urgent`; a known brand's
 unwanted offer is `promotion`, not `spam`; a direct human ask is `personal` unless it carries a hard

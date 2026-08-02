@@ -87,16 +87,22 @@ Full design rationale, the rule table, and the failure cases that shaped each ru
 
 ## Results
 
-Scored with `python main.py --eval` against the 30 labelled rows in `dataset/sample_messages.csv`.
+Scored with `python main.py --eval --runs 3` against the 30 labelled rows in
+`dataset/sample_messages.csv`. Three uncached passes, reported as mean and observed range —
+a single pass is a point estimate and this eval is too small to justify one.
 
-| Metric | Score |
-|---|---|
-| action accuracy | 30/30 |
-| message_type accuracy | 30/30 |
-| evidence overlap with gold | 22/28 |
-| retrieval recall of gold evidence | 27/28 |
+| Metric | Mean | Observed range |
+|---|---|---|
+| action accuracy | 99% | 29/30 - 30/30 |
+| message_type accuracy | 100% | 30/30 - 30/30 |
+| evidence overlap with gold | 85% | 23/28 - 25/28 |
+| retrieval recall of gold evidence | 27/28 | deterministic, no model call |
 
-**Read this honestly:** those same 30 rows are also the few-shot source, so 100% is an optimistic
+**The noise floor is 3% on action and 7% on evidence overlap.** One flipped row is 3.3% of the
+eval, so any change that moves a metric by less than its spread above is not resolvable here —
+it cannot be distinguished from run-to-run variance. Treat single-run comparisons accordingly.
+
+**Read this honestly:** those same 30 rows are also the few-shot source, so ~100% is an optimistic
 ceiling, not an expected score on hidden labels. What the iterations actually fixed were general
 taxonomy boundaries (a same-day schedule change is `event`, not `urgent`) and two over-firing safety
 rules — not per-row patches.
