@@ -16,6 +16,36 @@ from common import DATA, load
 
 OUT_COLUMNS = ["message_id", "action", "message_type", "reason", "confidence", "evidence_message_ids"]
 
+# The sample rows FEWSHOT is drawn from. Scoring on these measures how well the
+# model reproduces cases it was shown, not whether it generalizes, so --eval
+# holds them out and scores the other 15.
+#
+# Twelve were identified by their gold evidence ids appearing as the example's
+# evidence_message_ids. The remaining three cite no evidence and were identified
+# by the row's message_text appearing near-verbatim in the example's situation
+# (sample_msg_049, _052, _053). test_eval_split pins the first group so that
+# editing FEWSHOT cannot silently drift the split back into contamination.
+FEWSHOT_SOURCE_IDS = frozenset(
+    {
+        "sample_msg_001", "sample_msg_002", "sample_msg_004", "sample_msg_005",
+        "sample_msg_007", "sample_msg_008", "sample_msg_010", "sample_msg_014",
+        "sample_msg_019", "sample_msg_043", "sample_msg_044", "sample_msg_045",
+        "sample_msg_049", "sample_msg_052", "sample_msg_053",
+    }
+)
+
+
+def eval_rows(rows, held_out_only=True):
+    """The rows --eval scores.
+
+    Held out by default. The 30 labelled rows are also the few-shot source, so a
+    score over all of them is a recall number for examples already in the prompt
+    and cannot go down -- which is why the headline used to read 100%.
+    """
+    if not held_out_only:
+        return rows
+    return [r for r in rows if r["message_id"] not in FEWSHOT_SOURCE_IDS]
+
 
 def media_lookup(use_cache=True):
     """Ensure the media caches exist, then index them by media_id."""
@@ -171,7 +201,16 @@ def report_spread(per_run):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--eval", action="store_true", help="score against sample_messages.csv")
+    ap.add_argument(
+        "--eval",
+        action="store_true",
+        help="score against the 15 held-out rows of sample_messages.csv",
+    )
+    ap.add_argument(
+        "--eval-all",
+        action="store_true",
+        help="with --eval, score all 30 rows including the few-shot source (contaminated)",
+    )
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--model", default=route.MODEL)
     ap.add_argument("--no-cache", action="store_true")
@@ -192,6 +231,14 @@ def main():
     media = media_lookup(use_cache=not args.no_cache)
 
     rows = load("sample_messages" if args.eval else "messages")
+    if args.eval:
+        rows = eval_rows(rows, held_out_only=not args.eval_all)
+        if args.eval_all:
+            print(
+                "WARNING: scoring all 30 rows, 15 of which are the few-shot source. "
+                "This number is a recall ceiling, not an accuracy estimate.",
+                file=sys.stderr,
+            )
     if args.limit:
         rows = rows[: args.limit]
 
