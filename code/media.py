@@ -137,13 +137,23 @@ def describe_images(image_rows, verbose=True, use_cache=True):
             # router scores this image as though it showed nothing alarming. Mark
             # it so the next run re-asks instead of inheriting that silently.
             parsed = {"kind": "other", "summary": raw[:400], "risk_cues": [], "degraded": True}
+        parsed["modality"] = "image"
+        # A refresh must not cost us a description we already paid for: under
+        # --no-cache every image is re-asked, and a parse failure would otherwise
+        # overwrite a good entry with a stub carrying none of the risk fields.
+        kept_existing = parsed.get("degraded") and _usable(cache.get(iid))
+        if not kept_existing:
+            cache.set(iid, parsed)
+        if parsed.get("degraded"):
             print(
-                f"  image {iid}: vision response did not parse; cached without risk "
-                f"cues and will be retried on the next run",
+                f"  image {iid}: vision response did not parse; "
+                + (
+                    "kept the previous description"
+                    if kept_existing
+                    else "cached without risk cues and will be retried on the next run"
+                ),
                 file=sys.stderr,
             )
-        parsed["modality"] = "image"
-        cache.set(iid, parsed)
         if verbose:
             print(f"  image {iid}: {parsed.get('kind')} - {parsed.get('summary','')[:80]}")
     return cache.data
