@@ -10,6 +10,7 @@ import sys
 from collections import Counter
 
 import context
+import label_sample
 import media as media_mod
 import route
 from common import DATA, load
@@ -124,16 +125,32 @@ def score(results, truth_rows):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--eval", action="store_true", help="score against sample_messages.csv")
+    ap.add_argument(
+        "--eval-unseen",
+        action="store_true",
+        help="score the hand-labelled rows of dataset/messages_labelled.csv (see label_sample.py)",
+    )
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--model", default=route.MODEL)
     ap.add_argument("--no-cache", action="store_true")
     ap.add_argument("--dump", default="", help="write full decision traces to this JSON path")
     args = ap.parse_args()
 
+    if args.eval_unseen:
+        rows = label_sample.labelled_rows()
+        if not rows:
+            raise SystemExit(
+                f"No labelled rows in {label_sample.SHEET.name}. Run `python label_sample.py` to "
+                "build the sheet, then fill in the label columns by hand. The labels have to be "
+                "human: scoring against labels this model produced would measure self-consistency."
+            )
+        print(f"{len(rows)} of {label_sample.SAMPLE_SIZE} sampled rows are labelled.", flush=True)
+
     print("Media pre-pass...", flush=True)
     media = media_lookup(use_cache=not args.no_cache)
 
-    rows = load("sample_messages" if args.eval else "messages")
+    if not args.eval_unseen:
+        rows = load("sample_messages" if args.eval else "messages")
     if args.limit:
         rows = rows[: args.limit]
     router = route.Router(model=args.model, use_cache=not args.no_cache)
@@ -160,7 +177,7 @@ def main():
                 [{"pack": p, "decision": d} for _m, p, d in results], fh, indent=1, ensure_ascii=False
             )
 
-    if args.eval:
+    if args.eval or args.eval_unseen:
         score(results, rows)
         return
 

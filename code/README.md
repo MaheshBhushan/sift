@@ -94,7 +94,29 @@ export ANTHROPIC_API_KEY=...        # or put it in ../.env
 python main.py                       # -> dataset/output.csv
 python main.py --eval                # score against the 30 labelled samples
 python main.py --dump traces.json    # full per-message context + decision traces
+
+python label_sample.py               # build dataset/messages_labelled.csv (20 empty rows)
+python main.py --eval-unseen         # score whatever of it you have labelled by hand
 ```
+
+### The unseen eval set
+
+`sample_messages.csv` is the only labelled data, and `prompt.py` was written against all 30 of its
+rows — so no current metric is measured on data the rubric never saw. `label_sample.py` picks 20 of
+the 110 unlabelled messages and writes an **empty** label sheet for a human to fill in.
+
+The labels are deliberately not generated. Labels produced by the model and rubric under test would
+make `--eval-unseen` a self-consistency check wearing the costume of an accuracy check — a number
+that looks like validation while being circular.
+
+Two caveats on the sample, both structural:
+
+- It stratifies on **predicted** action/type, since no gold labels exist to stratify against. A
+  class the router never predicts cannot be sampled for.
+- It is **coverage-first, not distribution-matched**. The predictions occupy 15 distinct
+  (action, type) cells across only 20 slots, so each cell gets about one row. `mute/scam` is 31 of
+  110 in reality and would take 5.6 slots proportionally; it takes 1 here. The score answers "does
+  the rubric hold across every class", not "what is accuracy on realistic traffic".
 
 Media and routing results are cached under `cache/`, so re-runs are free and reproducible;
 `--no-cache` forces fresh calls. Cost for a full run: 110 routing calls + 20 vision calls.
