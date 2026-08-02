@@ -1,0 +1,55 @@
+message_id,user_id,conversation_type,group_id,business_id,sender_user_id,created_at,message_text,media_type,media_id,forwarded_count,action,message_type,reason,confidence,evidence_message_ids
+msg_023,u_002,business,,business_002,,2026-07-30 22:19,"Important Information
+
+Dear Customer,
+
+Your latest account or card payment update is now available.
+
+Please review the details and next steps in your banking app.
+
+Team Banking Services",,,0,,,,,
+msg_090,u_034,personal,,,u_050,2026-07-20 15:02,"Hi, is this Arun from Bluebell Apartments? I got this number from the courier desk for a package mix-up. No urgency, just checking before I call them again.",,,0,,,,,
+msg_005,u_032,group,group_005,,u_048,2026-07-26 16:33,"I kept the blue denim jacket aside for you. Can you collect it from Gate 2 by 6 PM today? Two others are asking, so I can hold it only till then. If not possible, tell me and I will release it.",image,img_008,0,,,,,
+msg_003,u_010,business,,business_001,,2026-07-21 12:19,"Hi Customer,
+
+Your order ending 4821 has been packed and is expected to reach the local hub today.
+
+You can check delivery details and delivery-code instructions in your Amazon app.
+
+Team Amazon",,,0,,,,,
+msg_008,u_020,business,,business_091,,2026-07-28 06:51,"Dear Customer,
+
+Now that you have the Hoop Pain Relief Roll On, can you fill a quick review? How has your experience been using it: Good, Okayish or Bad?
+
+Tap below to view details.",,,0,,,,,
+msg_004,u_003,business,,business_004,,2026-07-23 14:26,"Dear Customer,
+
+Your health-related update is ready for review.
+
+Please check appointment, prescription, claim, or pickup details in the registered app before the scheduled time.
+
+Team Care Services",,,0,,,,,
+msg_009,u_008,group,group_018,,u_054,2026-07-30 08:56,"Cricket highlights tonight? I will start a thread after dinner if people are watching. No pressure, mute the thread if scores get too much.",,,0,,,,,
+msg_029,u_032,group,group_005,,u_048,2026-07-18 18:56,"Selling a barely used Myntra kurta set, size M. Bought last month and worn once, no damage. Pickup near Gate 2 this weekend, DM if interested. Price final at Rs 850.",image,img_008,8,,,,,
+msg_010,u_002,business,,business_096,,2026-07-22 10:02,"Thank you for choosing PVR Cinemas,
+
+We would love to hear about your experience with us.
+
+Please click the link to give your valuable feedback.",,,0,,,,,
+msg_013,u_035,group,group_012,,u_048,2026-07-25 16:19,"Imported recliner discount today only. Warehouse pickup, cash or UPI ok. Buyer cancelled so need to clear it fast. Message only if serious.",,,0,,,,,
+msg_027,u_012,business,,business_092,,2026-07-25 13:44,"When did a trip last change something about how you see yourself?
+
+Ladakh is built for that. 7 nights, all in, from Rs 17,999 per person.
+
+Tap below to view the itinerary.
+
+Reply STOP to unsubscribe from marketing messages.",image,img_003,0,,,,,
+msg_007,u_013,group,group_010,,u_043,2026-07-24 21:44,Society potluck update: registrations are open till next Sunday. Add your flat number and dish preference in the sheet whenever convenient. No need to respond in this thread.,,,0,,,,,
+msg_001,u_001,group,group_002,,u_043,2026-07-18 08:07,"Tower B - tanker is leaving in 20 mins. Motor room valve is still open, so if your flat missed morning supply, fill drinking water now. I know this is sudden, but driver is refusing to wait. Next update after 6.",,,0,,,,,
+msg_021,u_011,group,group_002,,u_043,2026-07-24 18:07,"Payment due today. Complete before 5 PM. If already paid, ignore; receipts will be matched in evening. Please don't use any payment link shared by residents.",,,0,,,,,
+msg_012,u_003,group,group_016,,u_051,2026-07-31 14:13,Fwd as received: this one habit will fix health. Read till end and share in all family groups. Don't ignore if elders are at home.,,,9,,,,,
+msg_067,u_011,group,group_002,,u_043,2026-07-27 16:44,"Maintenance payment aaj 5 baje tak kar dena, admin ne bola late fee lag jayegi. Agar already paid hai toh receipt group me mat bhejna, direct office me dikha dena.",,,0,,,,,
+msg_015,u_009,group,group_005,,u_049,2026-07-18 21:33,OTP verification failed. Share OTP now to restore access before profile is locked.,,,0,,,,,
+msg_034,u_001,group,group_001,,u_051,2026-07-20 11:26,"Good morning beta, have a good day. Call me later when free, nothing urgent. Sharing blessings with everyone.",,,11,,,,,
+msg_011,u_001,group,group_001,,u_051,2026-07-27 12:07,"Good morning. Smile today, stay blessed and share this with someone who needs positive energy. Forwarding because it was nice.",,,8,,,,,
+msg_096,u_039,personal,,,u_049,2026-07-31 12:38,"Bonjour, je suis a la reception de votre immeuble. Votre passeport a ete trouve dans le hall; merci de venir le recuperer avant 18h.",,,0,,,,,
