@@ -17,6 +17,36 @@ from common import DATA, load
 
 OUT_COLUMNS = ["message_id", "action", "message_type", "reason", "confidence", "evidence_message_ids"]
 
+# The sample rows FEWSHOT is drawn from. Scoring on these measures how well the
+# model reproduces cases it was shown, not whether it generalizes, so --eval
+# holds them out and scores the other 15.
+#
+# Twelve were identified by their gold evidence ids appearing as the example's
+# evidence_message_ids. The remaining three cite no evidence and were identified
+# by the row's message_text appearing near-verbatim in the example's situation
+# (sample_msg_049, _052, _053). test_eval_split pins the first group so that
+# editing FEWSHOT cannot silently drift the split back into contamination.
+FEWSHOT_SOURCE_IDS = frozenset(
+    {
+        "sample_msg_001", "sample_msg_002", "sample_msg_004", "sample_msg_005",
+        "sample_msg_007", "sample_msg_008", "sample_msg_010", "sample_msg_014",
+        "sample_msg_019", "sample_msg_043", "sample_msg_044", "sample_msg_045",
+        "sample_msg_049", "sample_msg_052", "sample_msg_053",
+    }
+)
+
+
+def eval_rows(rows, held_out_only=True):
+    """The rows --eval scores.
+
+    Held out by default. The 30 labelled rows are also the few-shot source, so a
+    score over all of them is a recall number for examples already in the prompt
+    and cannot go down -- which is why the headline used to read 100%.
+    """
+    if not held_out_only:
+        return rows
+    return [r for r in rows if r["message_id"] not in FEWSHOT_SOURCE_IDS]
+
 
 def media_lookup(use_cache=True):
     """Ensure the media caches exist, then index them by media_id."""
@@ -85,7 +115,15 @@ def validate(results, expected_ids):
     return problems
 
 
-def score(results, truth_rows):
+SCORES = ("action", "type", "both", "evidence")
+
+
+def score(results, truth_rows, verbose=True):
+    """Returns the scored rates, and prints the detail when asked.
+
+    Returning them rather than only printing is what lets --runs aggregate
+    several passes; the single-run output is unchanged.
+    """
     truth = {r["message_id"]: r for r in truth_rows}
     a_hit = t_hit = both = 0
     e_hit = e_total = 0
@@ -105,6 +143,11 @@ def score(results, truth_rows):
             mine = {x for x in d["evidence_message_ids"].split(";") if x != "none"}
             e_hit += bool(gold_ev & mine)
     n = len(results)
+    rates = {"action": a_hit / n, "type": t_hit / n, "both": both / n}
+    if e_total:
+        rates["evidence"] = e_hit / e_total
+    if not verbose:
+        return rates
     print(f"\naction accuracy      {a_hit}/{n} = {a_hit / n:.0%}")
     print(f"type accuracy        {t_hit}/{n} = {t_hit / n:.0%}")
     print(f"both correct         {both}/{n} = {both / n:.0%}")
@@ -119,12 +162,56 @@ def score(results, truth_rows):
                 f"  MISS {msg['message_id']}: gold {t['action']}/{t['message_type']} "
                 f"got {d['action']}/{d['message_type']} :: {d['reason']}"
             )
-    return both / n
+    return rates
+
+
+def eval_runs(rows, media, model, runs):
+    """`runs` independently sampled scored passes.
+
+    Repeats bypass the routing cache. Left on, run 2 would replay run 1 from
+    disk and every spread would come out as zero -- which is precisely the
+    illusion --runs exists to dispel. The media cache is untouched, so this
+    costs routing calls only.
+    """
+    per_run = []
+    for k in range(1, runs + 1):
+        router = route.Router(model=model, use_cache=False)
+        if runs > 1:
+            print(f"\n--- run {k}/{runs}", flush=True)
+        results = run(rows, router, media, verbose=runs == 1)
+        per_run.append(score(results, rows, verbose=runs == 1))
+    return per_run
+
+
+def report_spread(per_run):
+    """Mean and observed range per metric, so a delta can be read against noise."""
+    n = len(per_run)
+    print(f"\nacross {n} runs -- mean [min-max], spread:")
+    for key in SCORES:
+        vals = sorted(m[key] for m in per_run if key in m)
+        if not vals:
+            continue
+        mean = sum(vals) / len(vals)
+        lo, hi = vals[0], vals[-1]
+        print(f"  {key:<9} {mean:>5.0%}  [{lo:.0%}-{hi:.0%}], spread {hi - lo:.0%}")
+    print(
+        "\nA change smaller than the spread above is not resolvable by this eval.",
+        flush=True,
+    )
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--eval", action="store_true", help="score against sample_messages.csv")
+    ap.add_argument(
+        "--eval",
+        action="store_true",
+        help="score against the 15 held-out rows of sample_messages.csv",
+    )
+    ap.add_argument(
+        "--eval-all",
+        action="store_true",
+        help="with --eval, score all 30 rows including the few-shot source (contaminated)",
+    )
     ap.add_argument(
         "--eval-unseen",
         action="store_true",
@@ -134,7 +221,17 @@ def main():
     ap.add_argument("--model", default=route.MODEL)
     ap.add_argument("--no-cache", action="store_true")
     ap.add_argument("--dump", default="", help="write full decision traces to this JSON path")
+    ap.add_argument(
+        "--runs",
+        type=int,
+        default=1,
+        help="with --eval, score this many uncached passes and report mean and range",
+    )
     args = ap.parse_args()
+    if args.runs < 1:
+        ap.error("--runs must be at least 1")
+    if args.runs > 1 and not (args.eval or args.eval_unseen):
+        ap.error("--runs only applies to --eval or --eval-unseen; a routing run has nothing to average")
 
     if args.eval_unseen:
         rows = label_sample.labelled_rows()
@@ -151,8 +248,22 @@ def main():
 
     if not args.eval_unseen:
         rows = load("sample_messages" if args.eval else "messages")
+        if args.eval:
+            rows = eval_rows(rows, held_out_only=not args.eval_all)
+            if args.eval_all:
+                print(
+                    "WARNING: scoring all 30 rows, 15 of which are the few-shot source. "
+                    "This number is a recall ceiling, not an accuracy estimate.",
+                    file=sys.stderr,
+                )
     if args.limit:
         rows = rows[: args.limit]
+
+    if args.runs > 1:
+        print(f"Scoring {len(rows)} rows x {args.runs} uncached runs with {args.model}...", flush=True)
+        report_spread(eval_runs(rows, media, args.model, args.runs))
+        return
+
     router = route.Router(model=args.model, use_cache=not args.no_cache)
 
     print(f"Routing {len(rows)} messages with {args.model}...", flush=True)

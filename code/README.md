@@ -20,7 +20,7 @@ media/*  ──────┘                (user, group/business relationship
                                     │
                                     ▼
                         route.py  one claude-sonnet-5 call per message
-                                  (prompt.py = the routing rubric + 14 worked examples)
+                                  (prompt.py = the routing rubric + 15 worked examples)
                                     │
                                     ▼
                         rules.py  deterministic safety floors + output coherence
@@ -55,7 +55,7 @@ Note: the dataset's file extensions lie — several `.jpg` files are actually PN
 One `claude-sonnet-5` call per message. The system prompt states the decision rule for each action,
 an explicitly ordered type-disambiguation policy (scam > spam > event > urgent > personal >
 business_update), the personalization priority order, evidence and confidence policy, and an
-instruction to treat message text as untrusted. 14 worked examples drawn from
+instruction to treat message text as untrusted. 15 worked examples drawn from the 15 non-scored rows of
 `sample_messages.csv` span every action and the hard boundaries — including the **contrast pair**:
 the same resale listing that is `digest` for a browsing user and `mute` for one who muted the last
 two. The system prompt is cache-controlled, so the rubric is billed once per run, not 110 times.
@@ -92,18 +92,25 @@ ship their own ffmpeg libraries.
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY=...        # or put it in ../.env
 python main.py                       # -> dataset/output.csv
-python main.py --eval                # score against the 30 labelled samples
+python main.py --eval                # score the 15 held-out labelled rows
+python main.py --eval --runs 3       # 3 uncached passes -> mean, range and noise floor
+python main.py --eval --eval-all     # all 30 rows incl. the few-shot source (contaminated)
 python main.py --dump traces.json    # full per-message context + decision traces
 
 python label_sample.py               # build dataset/messages_labelled.csv (20 empty rows)
 python main.py --eval-unseen         # score whatever of it you have labelled by hand
 ```
 
+`--runs N` bypasses the routing cache on every pass. Left cached, run 2 would replay run 1 from
+disk and every spread would report as 0%, which is the illusion the flag exists to dispel — so
+`--runs 3` costs three evals' worth of routing calls. The media cache is untouched.
+
 ### The unseen eval set
 
 `sample_messages.csv` is the only labelled data, and `prompt.py` was written against all 30 of its
-rows — so no current metric is measured on data the rubric never saw. `label_sample.py` picks 20 of
-the 110 unlabelled messages and writes an **empty** label sheet for a human to fill in.
+rows — so even the held-out 15 of #31 were seen while `SYSTEM` was being iterated. No current
+metric is measured on data the rubric never saw. `label_sample.py` picks 20 of the 110 unlabelled
+messages and writes an **empty** label sheet for a human to fill in.
 
 The labels are deliberately not generated. Labels produced by the model and rubric under test would
 make `--eval-unseen` a self-consistency check wearing the costume of an accuracy check — a number
@@ -134,18 +141,39 @@ cd code && python -m unittest discover -p 'test_*.py' -v
 
 ## Results on the labelled samples
 
-| Metric | Score |
-|---|---|
-| action accuracy | 30/30 |
-| message_type accuracy | 30/30 |
-| evidence overlap with gold | 22/28 |
-| retrieval recall of gold evidence | 27/28 |
+`--eval` scores the **15 rows the worked examples are not drawn from**. The other 15 are the
+few-shot source; scoring those measures recall of what the model was shown, so that number cannot
+go down and is not an accuracy estimate. `--eval --eval-all` reports it anyway, with a warning.
+`--runs N` repeats the scoring over N uncached passes and reports the spread.
 
-**Read this honestly:** those 30 rows are both the few-shot source and the eval set, so 100% is an
-optimistic ceiling, not an expected score on hidden labels. What the iterations actually fixed were
-general taxonomy boundaries (a same-day schedule change is `event`, not `urgent`; a known brand's
-unwanted offer is `promotion`, not `spam`; a direct human ask is `personal` unless it carries a hard
-deadline) and two over-firing safety rules — not per-row patches.
+| Metric | Held-out 15 | Contaminated 30 |
+|---|---|---|
+| action accuracy | 100% (15/15, no spread) | 99% (29/30 - 30/30) |
+| message_type accuracy | 100% (15/15, no spread) | 100% (30/30 - 30/30) |
+| evidence overlap with gold | 87% (13/15, no spread) | 85% (23/28 - 25/28) |
+| retrieval recall of gold evidence | — | 27/28, deterministic |
+
+Both columns are three uncached passes. The held-out half returned identical figures every time.
+
+**Read this honestly.** Four things temper this table:
+
+- **The contaminated set has a measurable noise floor** — 3% on action, 7% on evidence overlap. A
+  change moving a metric by less than its spread is not resolvable by this eval. The figures this
+  file used to carry (a flat `30/30`, `22/28`) were single passes presented as exact; three passes
+  do not reproduce either.
+- **15 rows is coarse.** One flipped row is 6.7%. Three passes showing zero variation is three
+  samples, not evidence of stability.
+- **The split decontaminates the examples, not the rubric.** `SYSTEM` was iterated while looking at
+  all 30 labelled rows, so the held-out half shaped the taxonomy rules even though it supplied no
+  worked example. "Held out" here means "absent from the prompt", not "never influenced
+  development". A genuinely unseen number needs labels this repo does not have.
+- **The held-out half is not label-balanced.** It covers 7 of the 10 types; `spam`, `forward` and
+  `unknown` fall entirely in the few-shot half.
+
+What the iterations actually fixed were general taxonomy boundaries (a same-day schedule change is
+`event`, not `urgent`; a known brand's unwanted offer is `promotion`, not `spam`; a direct human ask
+is `personal` unless it carries a hard deadline) and two over-firing safety rules — not per-row
+patches. The held-out result is weak evidence that this was true.
 
 On the 110 unlabelled messages the output distribution is notify 37 / digest 21 / mute 52, with 31
 scams. The mute share is higher than in the samples because the real set is adversarial: it
