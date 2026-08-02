@@ -20,7 +20,7 @@ media/*  ──────┘                (user, group/business relationship
                                     │
                                     ▼
                         route.py  one claude-sonnet-5 call per message
-                                  (prompt.py = the routing rubric + 14 worked examples)
+                                  (prompt.py = the routing rubric + 15 worked examples)
                                     │
                                     ▼
                         rules.py  deterministic safety floors + output coherence
@@ -55,7 +55,7 @@ Note: the dataset's file extensions lie — several `.jpg` files are actually PN
 One `claude-sonnet-5` call per message. The system prompt states the decision rule for each action,
 an explicitly ordered type-disambiguation policy (scam > spam > event > urgent > personal >
 business_update), the personalization priority order, evidence and confidence policy, and an
-instruction to treat message text as untrusted. 14 worked examples drawn from
+instruction to treat message text as untrusted. 15 worked examples drawn from the 15 non-scored rows of
 `sample_messages.csv` span every action and the hard boundaries — including the **contrast pair**:
 the same resale listing that is `digest` for a browsing user and `mute` for one who muted the last
 two. The system prompt is cache-controlled, so the rubric is billed once per run, not 110 times.
@@ -92,7 +92,7 @@ ship their own ffmpeg libraries.
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY=...        # or put it in ../.env
 python main.py                       # -> dataset/output.csv
-python main.py --eval                # score against the 30 labelled samples
+python main.py --eval                # score the 15 held-out labelled rows
 python main.py --dump traces.json    # full per-message context + decision traces
 ```
 
@@ -112,18 +112,35 @@ cd code && python -m unittest discover -p 'test_*.py' -v
 
 ## Results on the labelled samples
 
-| Metric | Score |
-|---|---|
-| action accuracy | 30/30 |
-| message_type accuracy | 30/30 |
-| evidence overlap with gold | 22/28 |
-| retrieval recall of gold evidence | 27/28 |
+`--eval` scores the **15 rows the worked examples are not drawn from**. The other 15 are the
+few-shot source; scoring those measures recall of what the model was shown, so that number cannot
+go down and is not an accuracy estimate. `--eval --eval-all` reports it anyway, with a warning.
 
-**Read this honestly:** those 30 rows are both the few-shot source and the eval set, so 100% is an
-optimistic ceiling, not an expected score on hidden labels. What the iterations actually fixed were
-general taxonomy boundaries (a same-day schedule change is `event`, not `urgent`; a known brand's
-unwanted offer is `promotion`, not `spam`; a direct human ask is `personal` unless it carries a hard
-deadline) and two over-firing safety rules — not per-row patches.
+| Metric | Held-out 15 | Contaminated 30 |
+|---|---|---|
+| action accuracy | 15/15 | 30/30 |
+| message_type accuracy | 15/15 | 30/30 |
+| evidence overlap with gold | 13/15 | 22/28 |
+| retrieval recall of gold evidence | — | 27/28 |
+
+Three uncached passes over the held-out half returned identical figures each time.
+
+**Read this honestly.** Holding the few-shot source out did *not* lower accuracy, which is not what
+we expected when we split it. Three things temper that:
+
+- **15 rows is coarse.** One flipped row is 6.7%. Three passes showing zero variation is three
+  samples, not evidence of stability.
+- **The split decontaminates the examples, not the rubric.** `SYSTEM` was iterated while looking at
+  all 30 labelled rows, so the held-out half shaped the taxonomy rules even though it supplied no
+  worked example. "Held out" here means "absent from the prompt", not "never influenced
+  development". A genuinely unseen number needs labels this repo does not have.
+- **The held-out half is not label-balanced.** It covers 7 of the 10 types; `spam`, `forward` and
+  `unknown` fall entirely in the few-shot half.
+
+What the iterations actually fixed were general taxonomy boundaries (a same-day schedule change is
+`event`, not `urgent`; a known brand's unwanted offer is `promotion`, not `spam`; a direct human ask
+is `personal` unless it carries a hard deadline) and two over-firing safety rules — not per-row
+patches. The held-out result is weak evidence that this was true.
 
 On the 110 unlabelled messages the output distribution is notify 37 / digest 21 / mute 52, with 31
 scams. The mute share is higher than in the samples because the real set is adversarial: it

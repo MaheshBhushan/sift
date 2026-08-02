@@ -40,7 +40,7 @@ pip install -r requirements.txt
 export ANTHROPIC_API_KEY=...          # or put it in ../.env
 
 python main.py                        # -> dataset/output.csv
-python main.py --eval                 # score against the 30 labelled samples
+python main.py --eval                 # score the 15 held-out labelled rows
 python main.py --dump traces.json     # per-message context + decision traces
 ```
 
@@ -67,7 +67,7 @@ media/*  ──────┘                (user, relationships, retrieved hi
                                     │
                                     ▼
                         route.py  one claude-sonnet-5 call per message
-                                  (prompt.py = rubric + 14 worked examples)
+                                  (prompt.py = rubric + 15 worked examples)
                                     │
                                     ▼
                         rules.py  deterministic safety floors + coherence
@@ -87,19 +87,23 @@ Full design rationale, the rule table, and the failure cases that shaped each ru
 
 ## Results
 
-Scored with `python main.py --eval` against the 30 labelled rows in `dataset/sample_messages.csv`.
+`python main.py --eval` scores the **15 rows of `dataset/sample_messages.csv` that the worked
+examples are not drawn from**. The other 15 are the few-shot source, so scoring them measures
+recall of what the model was already shown.
 
-| Metric | Score |
-|---|---|
-| action accuracy | 30/30 |
-| message_type accuracy | 30/30 |
-| evidence overlap with gold | 22/28 |
-| retrieval recall of gold evidence | 27/28 |
+| Metric | Held-out 15 | Contaminated 30 |
+|---|---|---|
+| action accuracy | 15/15 | 30/30 |
+| message_type accuracy | 15/15 | 30/30 |
+| evidence overlap with gold | 13/15 | 22/28 |
+| retrieval recall of gold evidence | — | 27/28 |
 
-**Read this honestly:** those same 30 rows are also the few-shot source, so 100% is an optimistic
-ceiling, not an expected score on hidden labels. What the iterations actually fixed were general
-taxonomy boundaries (a same-day schedule change is `event`, not `urgent`) and two over-firing safety
-rules — not per-row patches.
+**Read this honestly.** Holding the few-shot source out did not lower accuracy — which is not the
+result we expected from splitting it. But 15 rows means one flipped row is 6.7%, and the split
+decontaminates the *examples*, not the *rubric*: `SYSTEM` was written while looking at all 30
+labelled rows, so the held-out half still shaped the taxonomy even though it supplied no worked
+example. This is a better number than the old 100%, not a generalization guarantee. A genuinely
+unseen score needs labels this dataset does not provide.
 
 On the 110 unlabelled messages the distribution is notify 37 / digest 21 / mute 52, with 31 scams.
 The set is adversarial: OTP phishing, QR payment fraud, fake refund desks, and several
