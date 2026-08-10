@@ -3,8 +3,8 @@
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white">
-  <img alt="last commit" src="https://img.shields.io/github/last-commit/MaheshBhushan/HackerRank_Orchestrate">
-  <img alt="repo size" src="https://img.shields.io/github/repo-size/MaheshBhushan/HackerRank_Orchestrate">
+  <img alt="last commit" src="https://img.shields.io/github/last-commit/MaheshBhushan/sift">
+  <img alt="repo size" src="https://img.shields.io/github/repo-size/MaheshBhushan/sift">
 </p>
 <p align="center">
   <a href="code/README.md">Design notes</a> ·
@@ -34,7 +34,7 @@ historical message IDs that justified the decision.
 ## Quickstart
 
 ```bash
-git clone https://github.com/MaheshBhushan/HackerRank_Orchestrate.git
+git clone https://github.com/MaheshBhushan/sift.git
 cd HackerRank_Orchestrate/code
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY=...          # or put it in ../.env
